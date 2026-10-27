@@ -11,9 +11,12 @@ AUTO_LOG="$UPDATE_DIR/autoupdate.log"
 PROGRESS_FILE="$UPDATE_DIR/progress"
 CHECKSUMS_FILE="$UPDATE_DIR/checksums.txt"
 
-# Gately 仅在 GitHub 发布（官网 gately.cn 不提供 release 目录索引）
-GITHUB_API="https://api.github.com/repos/wangwanjie/gately/releases"
-DOWNLOAD_BASE="https://github.com/wangwanjie/gately/releases/download"
+# Gately 仅在 GitHub 发布。为避免 GitHub REST API 未认证限流（60 次/小时），
+# 版本列表走 git smart-http 的 info/refs（纯 HTTP，不走 API，不限流），
+# 下载地址按发布命名规律直接构造。
+REPO_URL="https://github.com/wangwanjie/gately"
+INFO_REFS="$REPO_URL/info/refs?service=git-upload-pack"
+DOWNLOAD_BASE="$REPO_URL/releases/download"
 
 log() {
     local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
@@ -82,7 +85,7 @@ fmt_size() {
     }'
 }
 
-# 预发布后缀归一化：dev<alpha<beta<rc，输出 rank.num 便于 sort -V
+# 预发布后缀归一化：dev<alpha<beta<rc，输出 rank.num
 pre_key() {
     local s="$1" word num rank
     word=$(printf '%s' "$s" | grep -oE '[a-zA-Z]+' | head -1)
@@ -143,72 +146,67 @@ save_installed_version() {
     uci -q commit gately 2>/dev/null
 }
 
-extract_url_from_releases() {
-    local esc
-    esc=$(printf '%s' "$2" | sed 's/\./\\./g')
-    grep -o "\"name\":\"${esc}\",\"url\":\"[^\"]*\"" "$1" \
-        | grep -o '"url":"[^"]*"' | cut -d'"' -f4 | head -1
+# 判断 tag 是否为预发布（去 v 后含 - 后缀，如 v0.6.0-rc1）
+is_prerelease_tag() {
+    local v; v=$(tag_to_ver "$1")
+    case "$v" in
+        *-*) return 0 ;;
+        *)   return 1 ;;
+    esac
 }
 
-# 从 release API JSON 中抽取关键行（按出现顺序）：tag_name、prerelease、linux 压缩包 URL
-fetch_api_lines() {
-    local raw="$1" out="$2"
-    printf '%s' "$raw" \
-        | grep -oE '"tag_name":[[:space:]]*"[^"]*"|"prerelease":[[:space:]]*(true|false)|https://github.com/wangwanjie/gately/releases/download/[^"]*_linux_[^"]*\.tar\.gz' \
-        > "$out"
+# 从 info/refs 拉取全部 tag（每行一个，已去重、去掉 ^{}）
+fetch_tags() {
+    http_get_var "$INFO_REFS" 30 \
+        | grep -aoE 'refs/tags/v[0-9][0-9A-Za-z.]*' \
+        | sed 's#refs/tags/##' | sort -u
 }
 
-# 状态机解析为 releases JSON；release_type=prerelease 时才包含预发布版本
-parse_release_lines() {
-    local lines="$1" arch="$2" reltype="$3"
-    local result=""
-    local cur_tag="" cur_pre="false" files_json="" best_name="" best_url=""
-
-    emit_release() {
-        [ -n "$cur_tag" ] && [ -n "$files_json" ] || return 0
-        if [ "$cur_pre" = "true" ] && [ "$reltype" != "prerelease" ]; then
-            return 0
+# 对 stdin 的 tag 行做降序排序（最新在前），用 version_lt 插入排序
+sort_tags_desc() {
+    local sorted="" v
+    while IFS= read -r v; do
+        [ -z "$v" ] && continue
+        if [ -z "$sorted" ]; then
+            sorted="$v"
+            continue
         fi
-        result="${result:+$result,}{\"tag\":\"$cur_tag\",\"best\":\"$best_name\",\"best_url\":\"$best_url\",\"files\":[$files_json]}"
-    }
-
-    while IFS= read -r line; do
-        [ -z "$line" ] && continue
-        case "$line" in
-            '"tag_name"'*)
-                emit_release
-                cur_tag=$(printf '%s' "$line" | tr -d ' ' | cut -d'"' -f4)
-                cur_pre="false"; files_json=""; best_name=""; best_url=""
-                ;;
-            '"prerelease"'*)
-                case "$line" in *true*) cur_pre="true" ;; *) cur_pre="false" ;; esac
-                ;;
-            https://*)
-                local fname="${line##*/}"
-                [ -z "$fname" ] && continue
-                echo "$files_json" | grep -q "\"$fname\"" && continue
-                files_json="${files_json:+$files_json,}{\"name\":\"$fname\",\"url\":\"$line\"}"
-                if [ -z "$best_name" ]; then
-                    case "$fname" in
-                        *_linux_${arch}.tar.gz) best_name="$fname"; best_url="$line" ;;
-                    esac
-                fi
-                ;;
-        esac
-    done < "$lines"
-    emit_release
-
-    printf '%s' "$result"
+        local new="" placed=0 s
+        for s in $(printf '%s' "$sorted" | tr '|' '\n'); do
+            if [ $placed -eq 0 ] && version_lt "$s" "$v"; then
+                new="${new:+$new|}$v"; placed=1
+            fi
+            new="${new:+$new|}$s"
+        done
+        [ $placed -eq 0 ] && new="${new:+$new|}$v"
+        sorted="$new"
+    done
+    printf '%s' "$sorted" | tr '|' '\n'
 }
 
+# 构造某个 tag + arch 的文件名
+file_for() {
+    echo "gately_${1}_linux_${2}.tar.gz"
+}
+
+# 构造 releases JSON（每个版本针对当前 arch 提供一个 tar.gz）
 build_releases() {
-    local raw="$1" arch="$2" reltype="$3"
-    local lf="$RUN_DIR/.api_lines"
-    fetch_api_lines "$raw" "$lf"
-    local r
-    r=$(parse_release_lines "$lf" "$arch" "$reltype")
-    rm -f "$lf"
-    printf '[%s]\n' "$r"
+    local arch="$1" reltype="$2"
+    local tags_file="$RUN_DIR/tags"
+    fetch_tags | sort_tags_desc > "$tags_file"
+
+    local result="" tag fname url
+    while IFS= read -r tag; do
+        [ -z "$tag" ] && continue
+        if is_prerelease_tag "$tag" && [ "$reltype" != "prerelease" ]; then
+            continue
+        fi
+        fname=$(file_for "$tag" "$arch")
+        url="${DOWNLOAD_BASE}/${tag}/${fname}"
+        result="${result:+$result,}{\"tag\":\"$tag\",\"best\":\"$fname\",\"best_url\":\"$url\",\"files\":[{\"name\":\"$fname\",\"url\":\"$url\"}]}"
+    done < "$tags_file"
+    rm -f "$tags_file"
+    printf '[%s]\n' "$result"
 }
 
 check_releases_count() {
@@ -217,6 +215,13 @@ check_releases_count() {
     count=$(printf '%s' "$json" | grep -o '"tag"' | wc -l | tr -d ' ')
     [ "$count" -gt 0 ] 2>/dev/null || return 1
     printf '%s' "$count"
+}
+
+extract_url_from_releases() {
+    local esc
+    esc=$(printf '%s' "$2" | sed 's/\./\\./g')
+    grep -o "\"name\":\"${esc}\",\"url\":\"[^\"]*\"" "$1" \
+        | grep -o '"url":"[^"]*"' | cut -d'"' -f4 | head -1
 }
 
 # Gately 提供标准 sha256sum 格式的 checksums.txt：<hash>  <filename>
@@ -315,13 +320,14 @@ cmd_check() {
     write_status "checking"
     log "Checking upstream versions (channel=$reltype arch=$arch)"
 
-    local raw
-    raw=$(http_get_var "$GITHUB_API?per_page=100")
-    { [ -z "$raw" ] || ! printf '%s' "$raw" | grep -q '"tag_name"'; } \
-        && die "check_failed" "GitHub API request failed or returned invalid data"
+    # 先确认能拿到 tag 列表
+    local probe
+    probe=$(http_get_var "$INFO_REFS" 30)
+    { [ -z "$probe" ] || ! printf '%s' "$probe" | grep -aq 'refs/tags/v'; } \
+        && die "check_failed" "Failed to fetch Gately version list (network error)"
 
     local releases_json
-    releases_json=$(build_releases "$raw" "$arch" "$reltype")
+    releases_json=$(build_releases "$arch" "$reltype")
 
     local count; count=$(check_releases_count "$releases_json") \
         || die "no_releases" "No gately versions found"

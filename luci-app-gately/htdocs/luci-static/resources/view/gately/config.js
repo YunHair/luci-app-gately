@@ -4,7 +4,8 @@
 
 var C   = gately_common;
 var KEYS = [
-    'port', 'delay', 'configdir', 'binpath',
+    'port', 'safe_url', 'internet_access', 'delay',
+    'configdir', 'binpath',
     'arch', 'release_type',
     'respawn_threshold', 'respawn_timeout', 'respawn_retry',
     'auto_update', 'update_interval'
@@ -15,6 +16,7 @@ var api = {
     arch:          C.rpc('get_arch'),
     save:          C.rpc('save_settings', KEYS),
     reset:         C.rpc('reset_password'),
+    setPwd:        C.rpc('set_admin_password', ['password']),
     listBackups:   C.rpc('list_backups'),
     restoreBackup: C.rpc('restore_backup', ['filename'])
 };
@@ -150,6 +152,44 @@ return view.extend({
             }
         }, [C.icon('trash', 14), E('span', {}, _('Reset password'))]);
 
+        // 设置管理员新密码
+        var pwdInput = E('input', {
+            type: 'password',
+            id: '_f_new_password',
+            class: 'gately-input',
+            placeholder: _('New password (min 8 chars)'),
+            style: 'flex:1;min-width:150px;'
+        });
+        var pwdBtn = E('button', {
+            type: 'button',
+            class: 'gately-btn gately-btn-primary',
+            click: function() {
+                var pw = pwdInput.value || '';
+                if (pw.length < 8) {
+                    C.showToast({ ok: false, title: _('Too Short'),
+                        msg: _('Password must be at least 8 characters.'), timeout: 2500 });
+                    return;
+                }
+                if (!window.confirm(_('Set admin password and restart service?'))) return;
+                pwdBtn.disabled = true;
+                L.resolveDefault(api.setPwd(pw), {}).then(function(res) {
+                    pwdBtn.disabled = false;
+                    var ok = res && res.result === true;
+                    C.showToast({
+                        ok:    ok,
+                        title: ok ? _('Submitted') : _('Failed'),
+                        msg:   ok ? _('Password submitted, service restarting…')
+                                  : _('Password set failed, please check the log.'),
+                        timeout: ok ? 2500 : 0
+                    });
+                    if (ok) pwdInput.value = '';
+                });
+            }
+        }, [C.icon('gear', 14), E('span', {}, _('Apply Password'))]);
+        var pwdCtrl = E('div', {
+            style: 'display:flex;gap:8px;align-items:center;'
+        }, [pwdInput, pwdBtn]);
+
         var descThreshold = E('span', {}, '');
         var descTimeout   = E('span', {}, '');
         var descRetry     = E('span', {}, '');
@@ -177,24 +217,42 @@ return view.extend({
         var mapEl = E('div', { class: 'cbi-map gately-page' }, [
             E('h2', {}, _('Gately — Settings')),
 
-            C.buildCard(_('Basic Service'), [
-                C.buildFormRow('text', 'port', _('Web UI Port'),
-                    cfg.port || '16680',
-                    _('Used for the page shortcut. Change the actual port in Gately settings.'),
-                    { style: 'width:100px;' }),
-                C.buildFormRow('number', 'delay', _('Delayed Start (s)'),
-                    cfg.delay || '60',
-                    _('Delay before starting after boot (only when uptime < 120s)'),
-                    { style: 'width:80px;', min: '0' }),
-                C.buildFormRow('custom', 'restore', _('Restore Backup'),
-                    null,
-                    _('Restore Gately config from a previous backup'),
-                    restoreBtn),
-                C.buildFormRow('custom', 'reset', _('Reset Credentials'),
-                    null,
-                    _('Reset admin password back to the default gately.cn'),
-                    resetBtn)
-            ], { icon: 'gear' }),
+            C.buildGrid(280, [
+                C.buildCard(_('Admin Panel'), [
+                    C.buildFormRow('text', 'port', _('Web UI Port'),
+                        cfg.port || '16680',
+                        _('Admin panel listen port. Takes effect after Save & restart.'),
+                        { style: 'width:110px;' }),
+                    C.buildFormRow('text', 'safe_url', _('Safe Entry URL'),
+                        cfg.safe_url || '',
+                        E('span', {}, [
+                            _('Hidden login path, e.g. /mysecret (blank to disable).'), E('br'),
+                            _('Cannot start with /api or /assets.')
+                        ]),
+                        { placeholder: '/mysecret' }),
+                    C.buildFormRow('toggle', 'internet_access', _('Allow Internet Access'),
+                        cfg.internet_access || '0',
+                        _('Off: LAN-only access. On: also reachable from the WAN.')),
+                    C.buildFormRow('custom', 'set_password', _('Admin Password'),
+                        null,
+                        _('Set a new admin password (min 8 chars), applied on restart.'),
+                        pwdCtrl)
+                ], { icon: 'shield' }),
+                C.buildCard(_('Basic Service'), [
+                    C.buildFormRow('number', 'delay', _('Delayed Start (s)'),
+                        cfg.delay || '60',
+                        _('Delay before starting after boot (only when uptime < 120s)'),
+                        { style: 'width:80px;', min: '0' }),
+                    C.buildFormRow('custom', 'restore', _('Restore Backup'),
+                        null,
+                        _('Restore Gately config from a previous backup'),
+                        restoreBtn),
+                    C.buildFormRow('custom', 'reset', _('Reset Credentials'),
+                        null,
+                        _('Reset admin password back to the default gately.cn'),
+                        resetBtn)
+                ], { icon: 'gear' })
+            ]),
 
             C.buildGrid(280, [
                 C.buildCard(_('Path & Architecture'), [

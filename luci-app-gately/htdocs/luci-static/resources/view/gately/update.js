@@ -159,6 +159,10 @@ return view.extend({
             C.setState(t + '_stat', _('Please select version and file first'), 'err');
             return;
         }
+        var arch = ucig('arch') || 'auto';
+        if (!window.confirm(
+            _('Ready to install Gately %s ?\nArchitecture: %s\nPackage: %s\n\nThe binary will be replaced and the service restarted.')
+                .format(tag, arch, fn))) return;
         if (btn) btn.disabled = true;
         C.setVis(t + '_bar_wrap', true);
         C.setBar(t + '_bar', 0);

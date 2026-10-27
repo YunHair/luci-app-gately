@@ -32,14 +32,17 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - id: ver
-        run: echo "tag=v$(awk -F':=' '/^PKG_VERSION:=/{print $2}' luci-app-gately/Makefile)" >> $GITHUB_OUTPUT
-      - uses: actions/download-artifact@v4
+      - name: Download all package artifacts
+        uses: actions/download-artifact@v4
         with:
           path: ipks
           merge-multiple: true
-      - uses: softprops/action-gh-release@v2
+      - name: List packaged files
+        run: find ipks -type f | sort
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
         with:
-          name: luci-app-gately ${{ steps.ver.outputs.tag }}
+          name: luci-app-gately ${{ github.ref_name }}
           files: ipks/*
+          generate_release_notes: true
           make_latest: true

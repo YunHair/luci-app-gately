@@ -1,6 +1,8 @@
 config gately 'gately'
 	option enabled       '0'
 	option port          '16680'
+	option safe_url      ''
+	option internet_access '0'
 	option delay         '60'
 	option configdir     '/etc/gately'
 	option binpath       '/usr/bin/gately'

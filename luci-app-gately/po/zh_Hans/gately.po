@@ -480,3 +480,57 @@ msgstr "崩溃后等待 %s 秒再重启"
 
 msgid "Web UI Port"
 msgstr "Web 界面端口"
+
+msgid "Admin Panel"
+msgstr "管理界面"
+
+msgid "Admin Panel listen port. Takes effect after Save & restart."
+msgstr "管理界面监听端口，保存并重启后生效。"
+
+msgid "Safe Entry URL"
+msgstr "安全入口"
+
+msgid "Hidden login path, e.g. /mysecret (blank to disable)."
+msgstr "隐藏的登录路径，如 /mysecret（留空则关闭）。"
+
+msgid "Cannot start with /api or /assets."
+msgstr "不能以 /api 或 /assets 开头。"
+
+msgid "Allow Internet Access"
+msgstr "允许外网访问"
+
+msgid "Off: LAN-only access. On: also reachable from the WAN."
+msgstr "关：仅内网可访问。开：外网也可访问。"
+
+msgid "Admin Password"
+msgstr "管理员密码"
+
+msgid "Set a new admin password (min 8 chars), applied on restart."
+msgstr "设置新的管理员密码（至少 8 位），重启后生效。"
+
+msgid "New password (min 8 chars)"
+msgstr "新密码（至少 8 位）"
+
+msgid "Apply Password"
+msgstr "应用密码"
+
+msgid "Too Short"
+msgstr "长度过短"
+
+msgid "Password must be at least 8 characters."
+msgstr "密码至少需要 8 个字符。"
+
+msgid "Set admin password and restart service?"
+msgstr "设置管理员密码并重启服务？"
+
+msgid "Password submitted, service restarting…"
+msgstr "密码已提交，服务正在重启…"
+
+msgid "Password set failed, please check the log."
+msgstr "密码设置失败，请检查日志。"
+
+msgid "Ready to install Gately %s ?\nArchitecture: %s\nPackage: %s\n\nThe binary will be replaced and the service restarted."
+msgstr "准备安装 Gately %s ？\n架构：%s\n安装包：%s\n\n将替换二进制文件并重启服务。"
+
+msgid "Submitted"
+msgstr "已提交"

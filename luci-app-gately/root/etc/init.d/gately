@@ -18,6 +18,8 @@ init_config() {
         "binpath=PROG=/usr/bin/gately" \
         "configdir=CONFDIR=/etc/gately" \
         "port=PORT=16680" \
+        "safe_url=SAFE_URL=" \
+        "internet_access=INTERNET_ACCESS=0" \
         "delay=DELAY=60" \
         "respawn_threshold=RESPAWN_THRESHOLD=3600" \
         "respawn_timeout=RESPAWN_TIMEOUT=30" \
@@ -63,6 +65,32 @@ kill_all_gately() {
     fi
 }
 
+sync_gately_json() {
+    [ -x /usr/bin/ucode ] || { log_msg "ucode not found, skip gately.json sync."; return 0; }
+    GATELY_CFG_DIR="$CONFDIR" \
+    GATELY_PORT="$PORT" \
+    GATELY_SAFE="$SAFE_URL" \
+    GATELY_INET="$INTERNET_ACCESS" \
+    /usr/bin/ucode -e '
+        import { access, readfile, writefile, chmod } from "fs";
+        let dir = getenv("GATELY_CFG_DIR") || "/etc/gately";
+        let port = trim(getenv("GATELY_PORT") || "16680");
+        let safe = trim(getenv("GATELY_SAFE") || "");
+        let inet = (getenv("GATELY_INET") === "1");
+        if (length(safe) > 0 && substr(safe, 0, 1) !== "/") safe = "/" + safe;
+        let path = dir + "/gately.json";
+        let cfg = {};
+        if (access(path, "r")) {
+            try { cfg = json(readfile(path) || "{}"); } catch (e) { cfg = {}; }
+        }
+        cfg.listen = ":" + port;
+        cfg.safePath = safe;
+        cfg.lanOnly = !inet;
+        writefile(path, sprintf("%.2J\n", cfg));
+        chmod(path, 0600);
+    ' 2>/dev/null
+}
+
 sync_cron() {
     local current
     current=$(grep "$CRON_TAG" "$CRON_FILE" 2>/dev/null)
@@ -104,6 +132,8 @@ start_service() {
     }
 
     : > "$LOGFILE"
+
+    sync_gately_json
 
     procd_open_instance
     procd_set_param command /bin/sh -c \

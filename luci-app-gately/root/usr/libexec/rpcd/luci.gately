@@ -14,6 +14,7 @@ const SETTINGS = {
     enabled: '0', port: '16680', delay: '60',
     configdir: '/etc/gately', binpath: '/usr/bin/gately',
     arch: 'auto', release_type: 'stable',
+    safe_url: '', internet_access: '0',
     respawn_threshold: '3600', respawn_timeout: '30', respawn_retry: '5',
     auto_update: '0', update_interval: '7', installed_version: '',
     theme: 'auto', bg: '1',
@@ -23,6 +24,7 @@ const SETTINGS = {
 const RESTART_KEYS = [
     'enabled', 'port', 'delay',
     'binpath', 'configdir',
+    'safe_url', 'internet_access',
     'respawn_threshold', 'respawn_timeout', 'respawn_retry'
 ];
 
@@ -283,8 +285,10 @@ const api = {
         let configdir = ucv('configdir');
         let releaseTag = ucv('installed_version') || '';
         let gatelyInfo = getGatelyInfo(bin);
+        let ver = gatelyInfo.version || '';
+        if (substr(ver, 0, 1) === 'v') ver = substr(ver, 1);
         return {
-            version:      gatelyInfo.version || releaseTag,
+            version:      ver || releaseTag,
             release_tag:  releaseTag,
             luci_version: getLuciVersion() || 'Unknown',
             commit:       gatelyInfo.commit || '',
@@ -325,6 +329,20 @@ const api = {
         let bin = ucv('binpath'), cfg = ucv('configdir');
         if (!exists(bin)) return { result: false };
         let command = `${shellQuote(bin)} reset-password -c ${shellQuote(cfg)} -y && ${shellQuote(INIT)} restart`;
+        return { result: scheduleShellCommand(command) };
+    },
+
+    // 设置管理员新密码（至少 8 位）：提交 account.reset，随后重启服务以应用
+    set_admin_password: (a) => {
+        let pass = (a && a.password) || '';
+        if (length(pass) < 8)
+            return { result: false, msg: 'too_short' };
+        let bin = ucv('binpath'), cfg = ucv('configdir');
+        if (!exists(bin))  return { result: false, msg: 'no_binary' };
+        if (!exists(cfg + '/account.json'))
+            return { result: false, msg: 'not_initialized' };
+        let command = `${shellQuote(bin)} reset-password -c ${shellQuote(cfg)}` +
+            ` -p ${shellQuote(pass)} -y && sleep 1 && ${shellQuote(INIT)} restart`;
         return { result: scheduleShellCommand(command) };
     },
 
@@ -458,6 +476,7 @@ const SIGS = {
     get_settings:           {},
     get_process_stats:      {},
     reset_password:         {},
+    set_admin_password:     { password: 'String' },
     get_update_status:      {},
     get_auto_update_log:    { type: 'String' },
     run_update:             {},
