@@ -1,0 +1,49 @@
+name: Build luci-app-gately
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        sdk: [openwrt-24.10, openwrt-25.12]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stage package into SDK tree
+        run: |
+          mkdir -p package/luci-app-gately
+          cp -a Makefile htdocs root po package/luci-app-gately/
+      - uses: openwrt/gh-action-sdk@main
+        env:
+          ARCH: x86_64-${{ matrix.sdk }}
+          FEEDNAME: packages_ci
+          PACKAGES: luci-app-gately
+          NO_REFRESH_CHECK: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pkg-${{ matrix.sdk }}
+          path: bin/packages/x86_64/packages_ci/*
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - id: ver
+        run: echo "tag=v$(awk -F':=' '/^PKG_VERSION:=/{print $2}' Makefile)" >> $GITHUB_OUTPUT
+      - uses: actions/download-artifact@v4
+        with:
+          path: pkgs
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: luci-app-gately ${{ steps.ver.outputs.tag }}
+          files: pkgs/*
+          make_latest: true
