@@ -54,11 +54,12 @@ Gately 以单二进制方式运行，启动命令为：
 
 ### 方式一：使用 OpenWrt SDK / 源码编译
 
-将本目录放入 OpenWrt 源码树的 `package/` 目录：
+本仓库为 feed 布局，真正的包位于内层 `luci-app-gately/` 目录。将该目录放入 OpenWrt 源码树的 `package/` 目录：
 
 ```bash
-cd openwrt
-cp -a luci-app-gately package/
+# 假设当前位于仓库根目录
+cp -a luci-app-gately /path/to/openwrt/package/
+cd /path/to/openwrt
 ./scripts/feeds update luci
 ./scripts/feeds install luci
 make package/luci-app-gately/compile V=s
@@ -70,11 +71,11 @@ make package/luci-app-gately/compile V=s
 
 ### 方式二：手动部署（不打包）
 
-将文件按 `root/` 目录结构复制到目标系统：
+将内层 `luci-app-gately/root/` 目录结构复制到目标系统：
 
 ```bash
-# 假设当前为本插件目录
-cp -a root/. /
+# 假设当前位于仓库根目录
+cp -a luci-app-gately/root/. /
 chmod 755 /etc/init.d/gately /usr/libexec/gately-*.sh /usr/libexec/rpcd/luci.gately
 /etc/init.d/rpcd reload
 # 自行把 gately 二进制放到 /usr/bin/gately 后：
