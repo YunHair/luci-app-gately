@@ -79,7 +79,7 @@ http_get_var() {
     out=$(curl -fsSL -A "$CURL_UA" --connect-timeout 10 --max-time "$t" "$url" 2>&1)
     rc=$?
     if [ $rc -ne 0 ]; then
-        log "curl rc=$rc: $(printf '%s' "$out" | tr '\n' ' ' | head -c 200)"
+        log "curl rc=$rc url=$url: $(printf '%s' "$out" | tr '\n' ' ' | head -c 200)"
         return $rc
     fi
     printf '%s' "$out"
@@ -367,6 +367,11 @@ cmd_check() {
     init_dir
     write_status "checking"
     log "Checking upstream versions (channel=$reltype arch=$arch)"
+    if [ -n "$GH_MIRROR" ]; then
+        log "Mirror enabled: $GH_MIRROR"
+    else
+        log "Mirror: none (direct to github.com)"
+    fi
 
     # 只拉取一次 info/refs，直接排序落盘。
     # fetch_tags 失败时自身会把 curl rc/原因写进日志（rc=6 DNS、7 连接、28 超时）。

@@ -50,6 +50,12 @@ function buildSettingsCard() {
             saveBtn.disabled = true;
             uci.set('gately', 'gately', 'release_type', chkSel.value);
             uci.set('gately', 'gately', 'github_mirror', mirrorInput.value.trim());
+            var autoEl = document.getElementById('_f_auto_update');
+            uci.set('gately', 'gately', 'auto_update',
+                (autoEl && autoEl.checked) ? '1' : '0');
+            var ivEl = document.getElementById('_f_update_interval');
+            uci.set('gately', 'gately', 'update_interval',
+                (ivEl && ivEl.value) ? ivEl.value : '7');
             uci.save('gately');
             uci.apply('gately').then(function() {
                 saveBtn.disabled = false;
@@ -73,6 +79,13 @@ function buildSettingsCard() {
                 _('Common prefix ends with /, e.g. https://ghfast.top/')
             ]),
             mirrorInput),
+        C.buildFormRow('toggle', 'auto_update', _('Enable Auto Update'),
+            ucig('auto_update') || '0',
+            _('Periodically check and install the latest version')),
+        C.buildFormRow('number', 'update_interval', _('Check Interval (days)'),
+            ucig('update_interval') || '7',
+            _('Range: 1 – 365 days'),
+            { style: 'width:80px;', min: '1', max: '365' }),
         E('div', { class: 'gately-banner-row', style: 'justify-content:flex-end;' }, saveBtn)
     ], { icon: 'gear' });
 }

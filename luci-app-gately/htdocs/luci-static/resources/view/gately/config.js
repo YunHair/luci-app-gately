@@ -7,8 +7,7 @@ var KEYS = [
     'port', 'safe_url', 'internet_access', 'delay',
     'configdir', 'binpath',
     'arch',
-    'respawn_threshold', 'respawn_timeout', 'respawn_retry',
-    'auto_update', 'update_interval'
+    'respawn_threshold', 'respawn_timeout', 'respawn_retry'
 ];
 var SAVE_KEYS = KEYS.concat(['admin_password']);
 
@@ -60,8 +59,6 @@ return view.extend({
     render: function(data) {
         var cfg  = data[0] || {};
         var arch = (data[1] || {}).arch || _('Unknown');
-
-        var autoUpdate = cfg.auto_update === '1';
 
         var restoreBtn = E('button', {
             type: 'button',
@@ -230,16 +227,7 @@ return view.extend({
                             _('Leave "auto" to detect automatically')
                         ]),
                         { style: 'width:120px;' })
-                ], { icon: 'folder' }),
-                C.buildCard(_('Auto Update'), [
-                    C.buildFormRow('toggle', 'auto_update', _('Enable Auto Update'),
-                        cfg.auto_update || '0',
-                        _('Periodically check and install the latest version')),
-                    C.buildFormRow('number', 'update_interval', _('Check Interval (days)'),
-                        cfg.update_interval || '7',
-                        _('Range: 1 – 365 days'),
-                        { style: 'width:80px;', min: '1', max: '365' })
-                ], { icon: 'clock' })
+                ], { icon: 'folder' })
             ]),
 
             C.buildGrid(280, [
@@ -262,16 +250,7 @@ return view.extend({
 
         C.initThemeButton();
 
-        var autoEl = mapEl.querySelector('#_f_auto_update');
-        if (autoEl) {
-            autoEl.addEventListener('change', function() {
-                C.rowVis('update_interval', this.checked);
-            });
-        }
-
         window.setTimeout(function() {
-            C.rowVis('update_interval', autoUpdate);
-
             var elThreshold = mapEl.querySelector('#_f_respawn_threshold');
             var elTimeout   = mapEl.querySelector('#_f_respawn_timeout');
             var elRetry     = mapEl.querySelector('#_f_respawn_retry');
