@@ -2,7 +2,7 @@
 'require baseclass';
 'require rpc';
 
-var GATELY_ASSET_VERSION = '1.1.7-r1';
+var GATELY_ASSET_VERSION = '1.1.8-r1';
 var themeMode = 'auto';
 var themeMedia = window.matchMedia
     ? window.matchMedia('(prefers-color-scheme: dark)')

@@ -39,16 +39,6 @@ gh_url() {
     fi
 }
 
-# 是否使用系统代理（HomeProxy 等）。
-# 默认关闭（0）：清空代理环境变量，让本机 curl 直接走 WAN，避免代理对本机进程的干扰。
-# 开启（1）：保留 http_proxy/https_proxy，本机 curl 跟随代理客户端走节点。
-USE_SYSTEM_PROXY=$(uci -q get gately.gately.use_system_proxy 2>/dev/null)
-if [ "$USE_SYSTEM_PROXY" = "1" ]; then
-    log "System proxy enabled: ${https_proxy:-${http_proxy:-${all_proxy:-}}}"
-else
-    unset http_proxy https_proxy all_proxy HTTP_PROXY HTTPS_PROXY ALL_PROXY
-fi
-
 INFO_REFS=$(gh_url "$REPO_URL/info/refs?service=git-upload-pack")
 DOWNLOAD_BASE=$(gh_url "$REPO_URL/releases/download")
 

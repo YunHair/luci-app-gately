@@ -5,7 +5,7 @@ LUCI_DEPENDS:=+luci-base +curl
 LUCI_PKGARCH:=all
 
 PKG_NAME:=luci-app-gately
-PKG_VERSION:=1.1.7
+PKG_VERSION:=1.1.8
 PKG_RELEASE:=1
 PKG_PO_VERSION:=$(PKG_VERSION)
 
@@ -27,6 +27,11 @@ define Package/$(PKG_NAME)/postinst
 [ -n "$${IPKG_INSTROOT}" ] && exit 0
 INITD=/etc/init.d
 UPGRADE_MARKER=/tmp/gately-luci-app-upgrade
+# 1.1.8 起移除「使用系统代理」选项，清掉旧版本遗留的 uci 配置
+if uci -q get gately.gately.use_system_proxy >/dev/null 2>&1; then
+	uci -q delete gately.gately.use_system_proxy
+	uci -q commit gately
+fi
 if [ "$${PKG_UPGRADE}" = "1" ] || [ -e "$${UPGRADE_MARKER}" ]; then
 	rm -f "$${UPGRADE_MARKER}"
 else

@@ -12,7 +12,7 @@ var api = {
     autoLog:     C.rpc('get_auto_update_log',  ['type']),
     cleanUpdate: C.rpc('clean_update'),
     saveSettings: C.rpc('save_settings',
-        ['release_type', 'github_mirror', 'use_system_proxy',
+        ['release_type', 'github_mirror',
          'auto_update', 'update_interval'])
 };
 
@@ -54,16 +54,14 @@ function buildSettingsCard() {
 
             var autoEl  = document.getElementById('_f_auto_update');
             var ivEl    = document.getElementById('_f_update_interval');
-            var proxyEl = document.getElementById('_f_use_system_proxy');
 
             var relType = chkSel.value;
             var mirror  = mirrorInput.value.trim();
-            var proxy   = (proxyEl && proxyEl.checked) ? '1' : '0';
             var auto    = (autoEl && autoEl.checked) ? '1' : '0';
             var interval= (ivEl && ivEl.value) ? ivEl.value : '7';
 
             L.resolveDefault(api.saveSettings(
-                relType, mirror, proxy, auto, interval), {}
+                relType, mirror, auto, interval), {}
             ).then(function(res) {
                 saveBtn.disabled = false;
                 var ok = res && res.result === 'ok';
@@ -99,12 +97,6 @@ function buildSettingsCard() {
                 _('Common prefix ends with /, e.g. https://ghfast.top/')
             ]),
             mirrorInput),
-        C.buildFormRow('toggle', 'use_system_proxy', _('Use System Proxy'),
-            ucig('use_system_proxy') || '0',
-            E('span', {}, [
-                _('Route update traffic through the system proxy (e.g. HomeProxy).'), E('br'),
-                _('Turn on when direct connection or the mirror times out; turn off for direct connection.')
-            ])),
         C.buildFormRow('toggle', 'auto_update', _('Enable Auto Update'),
             ucig('auto_update') || '0',
             _('Periodically check and install the latest version')),

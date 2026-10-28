@@ -581,22 +581,13 @@ msgid "GitHub Acceleration Mirror"
 msgstr "GitHub 加速镜像"
 
 msgid "If checking times out (rc=28, cannot reach github.com), fill a GitHub proxy prefix and save. Leave empty for direct connection."
-msgstr "若检查超时（rc=28，连不上 github.com），在此填写 GitHub 代理前缀后保存；留空则直连。"
+msgstr "在此填写 GitHub 代理前缀后保存；留空则直连。"
 
 msgid "Common prefix ends with /, e.g. https://ghfast.top/"
 msgstr "前缀以 / 结尾，例如 https://ghfast.top/"
 
 msgid "Update settings saved."
 msgstr "更新设置已保存。"
-
-msgid "Use System Proxy"
-msgstr "使用系统代理"
-
-msgid "Route update traffic through the system proxy (e.g. HomeProxy)."
-msgstr "让更新流量走系统代理（如 HomeProxy）。"
-
-msgid "Turn on when direct connection or the mirror times out; turn off for direct connection."
-msgstr "直连或镜像超时时开启；直连正常时关闭。"
 
 msgid "Request failed, please try again."
 msgstr "请求失败，请重试。"
@@ -645,3 +636,15 @@ msgstr "仅清除下载缓存与日志，不影响当前的二进制文件和配
 
 msgid "The configuration will be overwritten with the contents of this backup and the service will restart."
 msgstr "配置将被该备份的内容覆盖，并重启服务。"
+
+msgid "Save"
+msgstr "保存"
+
+msgid "Package"
+msgstr "安装包"
+
+msgid "e.g. https://ghfast.top/"
+msgstr "例如 https://ghfast.top/"
+
+msgid "Leave \"auto\" to detect automatically"
+msgstr "填写 auto 则自动检测"
