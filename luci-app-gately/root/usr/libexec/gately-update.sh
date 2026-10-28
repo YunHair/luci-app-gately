@@ -11,6 +11,12 @@ AUTO_LOG="$UPDATE_DIR/autoupdate.log"
 PROGRESS_FILE="$UPDATE_DIR/progress"
 CHECKSUMS_FILE="$UPDATE_DIR/checksums.txt"
 
+log() {
+    local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+    echo "$msg" >&2
+    [ -n "$LOG_TO_FILE" ] && echo "$msg" >> "$LOG_TO_FILE"
+}
+
 # Gately 仅在 GitHub 发布。为避免 GitHub REST API 未认证限流（60 次/小时），
 # 版本列表走 git smart-http 的 info/refs（纯 HTTP，不走 API，不限流），
 # 下载地址按发布命名规律直接构造。
@@ -33,14 +39,18 @@ gh_url() {
     fi
 }
 
+# 是否使用系统代理（HomeProxy 等）。
+# 默认关闭（0）：清空代理环境变量，让本机 curl 直接走 WAN，避免代理对本机进程的干扰。
+# 开启（1）：保留 http_proxy/https_proxy，本机 curl 跟随代理客户端走节点。
+USE_SYSTEM_PROXY=$(uci -q get gately.gately.use_system_proxy 2>/dev/null)
+if [ "$USE_SYSTEM_PROXY" = "1" ]; then
+    log "System proxy enabled: ${https_proxy:-${http_proxy:-${all_proxy:-}}}"
+else
+    unset http_proxy https_proxy all_proxy HTTP_PROXY HTTPS_PROXY ALL_PROXY
+fi
+
 INFO_REFS=$(gh_url "$REPO_URL/info/refs?service=git-upload-pack")
 DOWNLOAD_BASE=$(gh_url "$REPO_URL/releases/download")
-
-log() {
-    local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
-    echo "$msg" >&2
-    [ -n "$LOG_TO_FILE" ] && echo "$msg" >> "$LOG_TO_FILE"
-}
 
 init_dir() {
     [ -d "$UPDATE_DIR" ] || mkdir -p "$UPDATE_DIR"

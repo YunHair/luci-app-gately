@@ -56,6 +56,9 @@ function buildSettingsCard() {
             var ivEl = document.getElementById('_f_update_interval');
             uci.set('gately', 'gately', 'update_interval',
                 (ivEl && ivEl.value) ? ivEl.value : '7');
+            var proxyEl = document.getElementById('_f_use_system_proxy');
+            uci.set('gately', 'gately', 'use_system_proxy',
+                (proxyEl && proxyEl.checked) ? '1' : '0');
             uci.save('gately');
             uci.apply('gately').then(function() {
                 saveBtn.disabled = false;
@@ -79,6 +82,12 @@ function buildSettingsCard() {
                 _('Common prefix ends with /, e.g. https://ghfast.top/')
             ]),
             mirrorInput),
+        C.buildFormRow('toggle', 'use_system_proxy', _('Use System Proxy'),
+            ucig('use_system_proxy') || '0',
+            E('span', {}, [
+                _('Route update traffic through the system proxy (e.g. HomeProxy).'), E('br'),
+                _('Turn on when direct connection or the mirror times out; turn off for direct connection.')
+            ])),
         C.buildFormRow('toggle', 'auto_update', _('Enable Auto Update'),
             ucig('auto_update') || '0',
             _('Periodically check and install the latest version')),

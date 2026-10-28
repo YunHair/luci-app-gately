@@ -579,3 +579,12 @@ msgstr "前缀以 / 结尾，例如 https://ghfast.top/"
 
 msgid "Update settings saved."
 msgstr "更新设置已保存。"
+
+msgid "Use System Proxy"
+msgstr "使用系统代理"
+
+msgid "Route update traffic through the system proxy (e.g. HomeProxy)."
+msgstr "让更新流量走系统代理（如 HomeProxy）。"
+
+msgid "Turn on when direct connection or the mirror times out; turn off for direct connection."
+msgstr "直连或镜像超时时开启；直连正常时关闭。"
