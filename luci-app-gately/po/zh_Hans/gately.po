@@ -484,7 +484,7 @@ msgstr "Web 界面端口"
 msgid "Admin Panel"
 msgstr "管理界面"
 
-msgid "Admin Panel listen port. Takes effect after Save & restart."
+msgid "Admin panel listen port. Takes effect after Save & restart."
 msgstr "管理界面监听端口，保存并重启后生效。"
 
 msgid "Safe Entry URL"
