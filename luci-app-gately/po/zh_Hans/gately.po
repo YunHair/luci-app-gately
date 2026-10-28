@@ -546,3 +546,21 @@ msgstr "随保存一并应用，随后服务重启。"
 
 msgid "Gately is not initialized yet. Start it once before setting a password."
 msgstr "Gately 尚未初始化。请先启动一次再设置密码。"
+
+msgid "Leave blank to keep current password"
+msgstr "留空则保持当前密码"
+
+msgid "Leave this empty to keep your current password. To change it, type a new password of at least 8 characters."
+msgstr "留空则保持当前密码不变；如需修改，请输入至少 8 位的新密码。"
+
+msgid "Takes effect when you save; the service restarts afterwards."
+msgstr "保存后生效，随后服务自动重启。"
+
+msgid "Core Update"
+msgstr "核心更新"
+
+msgid "Check, download and install Gately core updates"
+msgstr "检查、下载并安装 Gately 核心更新"
+
+msgid "Open Update page"
+msgstr "打开更新页面"

@@ -16,7 +16,6 @@ var api = {
     settings:      C.rpc('get_settings'),
     arch:          C.rpc('get_arch'),
     save:          C.rpc('save_settings', SAVE_KEYS),
-    reset:         C.rpc('reset_password'),
     listBackups:   C.rpc('list_backups'),
     restoreBackup: C.rpc('restore_backup', ['filename'])
 };
@@ -143,34 +142,13 @@ return view.extend({
             }
         }, [C.icon('folder', 14), E('span', {}, _('Restore Backup'))]);
 
-        var resetBtn = E('button', {
-            type: 'button',
-            id: '_f_reset',
-            class: 'gately-btn gately-btn-danger',
-            click: function() {
-                if (!window.confirm(
-                    _('Reset admin password to default (gately.cn)? Service will restart.'))) return;
-                L.resolveDefault(api.reset(), {}).then(function(res) {
-                    C.showToast({
-                        ok:      !!(res && res.result),
-                        title:   (res && res.result)
-                                     ? _('Reset Success') : _('Reset Failed'),
-                        msg:     (res && res.result)
-                                     ? _('Credentials reset to default, service restarting…')
-                                     : _('Reset failed, please check the log.'),
-                        timeout: (res && res.result) ? 2500 : 0
-                    });
-                });
-            }
-        }, [C.icon('trash', 14), E('span', {}, _('Reset password'))]);
-
         // 管理员密码：总保存时一并应用；留空则保持原密码不变
         var pwdInput = E('input', {
             type: 'password',
             id: '_f_admin_password',
             class: 'gately-input',
             autocomplete: 'new-password',
-            placeholder: _('Leave blank to keep unchanged'),
+            placeholder: _('Leave blank to keep current password'),
             style: 'flex:1;min-width:150px;'
         });
 
@@ -220,8 +198,8 @@ return view.extend({
                     C.buildFormRow('custom', 'admin_password', _('Admin Password'),
                         null,
                         E('span', {}, [
-                            _('Leave blank to keep unchanged, or enter a new password (min 8 chars).'), E('br'),
-                            _('Applied together with Save, then the service restarts.')
+                            _('Leave this empty to keep your current password. To change it, type a new password of at least 8 characters.'), E('br'),
+                            _('Takes effect when you save; the service restarts afterwards.')
                         ]),
                         pwdInput)
                 ], { icon: 'shield' }),
@@ -233,11 +211,7 @@ return view.extend({
                     C.buildFormRow('custom', 'restore', _('Restore Backup'),
                         null,
                         _('Restore Gately config from a previous backup'),
-                        restoreBtn),
-                    C.buildFormRow('custom', 'reset', _('Reset Credentials'),
-                        null,
-                        _('Reset admin password back to the default gately.cn'),
-                        resetBtn)
+                        restoreBtn)
                 ], { icon: 'gear' })
             ]),
 
@@ -263,7 +237,15 @@ return view.extend({
                         _('Include pre-release versions (rc) when checking'), [
                             { v: 'stable',     l: _('Stable') },
                             { v: 'prerelease', l: _('Include pre-release') }
-                        ])
+                        ]),
+                    C.buildFormRow('custom', 'goto_update', _('Core Update'),
+                        null,
+                        _('Check, download and install Gately core updates'),
+                        E('button', {
+                            type: 'button',
+                            class: 'gately-btn gately-btn-primary',
+                            click: function() { L.navigate('admin/services/gately/update'); }
+                        }, [C.icon('download', 14), E('span', {}, _('Open Update page'))]))
                 ], { icon: 'download' })
             ]),
 

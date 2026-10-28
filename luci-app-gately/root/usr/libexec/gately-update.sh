@@ -47,14 +47,24 @@ die() {
     exit 1
 }
 
+CURL_UA="Mozilla/5.0 (compatible; luci-app-gately)"
+
 http_get() {
     local url="$1" out="$2" t="${3:-60}"
-    curl -fsSL --connect-timeout 15 --max-time "$t" -o "$out" "$url"
+    curl -fsSL -A "$CURL_UA" --connect-timeout 10 --max-time "$t" -o "$out" "$url"
 }
 
+# 输出 body 到 stdout；把 curl 的错误合并捕获，失败时记到日志便于诊断
+# （rc=6 DNS 失败、rc=7 连接被拒、rc=28 超时、rc=22 HTTP 错误）
 http_get_var() {
-    local url="$1" t="${2:-30}"
-    curl -fsSL --connect-timeout 15 --max-time "$t" "$url" 2>/dev/null
+    local url="$1" t="${2:-30}" out rc
+    out=$(curl -fsSL -A "$CURL_UA" --connect-timeout 10 --max-time "$t" "$url" 2>&1)
+    rc=$?
+    if [ $rc -ne 0 ]; then
+        log "curl rc=$rc: $(printf '%s' "$out" | tr '\n' ' ' | head -c 200)"
+        return $rc
+    fi
+    printf '%s' "$out"
 }
 
 # Gately 为 Go 架构命名，文件名形如 gately_<tag>_linux_<arch>.tar.gz
@@ -158,9 +168,19 @@ is_prerelease_tag() {
 # 从 info/refs 拉取全部 tag（每行一个，已去重、去掉 ^{}）
 # 字符类需含 "-"，否则 v0.6.0-rc1 这类预发布 tag 会被截断成 v0.6.0。
 fetch_tags() {
-    http_get_var "$INFO_REFS" 30 \
-        | grep -aoE 'refs/tags/v[0-9][0-9A-Za-z.-]*' \
-        | sed 's#refs/tags/##' | sort -u
+    local i tags
+    for i in 1 2 3; do
+        tags=$(http_get_var "$INFO_REFS" 30 \
+            | grep -aoE 'refs/tags/v[0-9][0-9A-Za-z.-]*' \
+            | sed 's#refs/tags/##' | sort -u)
+        if [ -n "$tags" ]; then
+            printf '%s\n' "$tags"
+            return 0
+        fi
+        log "Tag list empty, retrying ($i/3)..."
+        sleep 2
+    done
+    return 1
 }
 
 # 对 stdin 的 tag 行做降序排序（最新在前）。
@@ -330,12 +350,17 @@ cmd_check() {
     write_status "checking"
     log "Checking upstream versions (channel=$reltype arch=$arch)"
 
-    # 只拉取一次 info/refs，直接排序落盘
+    # 只拉取一次 info/refs，直接排序落盘。
+    # fetch_tags 失败时自身会把 curl rc/原因写进日志（rc=6 DNS、7 连接、28 超时）。
     local tags_file="$RUN_DIR/tags.sorted"
-    fetch_tags | sort_tags_desc > "$tags_file"
+    local raw_tags
+    raw_tags=$(fetch_tags) || raw_tags=""
+    if [ -n "$raw_tags" ]; then
+        printf '%s\n' "$raw_tags" | sort_tags_desc > "$tags_file"
+    fi
 
     if [ ! -s "$tags_file" ] || ! grep -aq . "$tags_file"; then
-        die "check_failed" "Failed to fetch Gately version list (network error)"
+        die "check_failed" "Cannot reach github.com to fetch versions. Check WAN/DNS, or configure a proxy. Details in the log."
     fi
 
     local releases_json
