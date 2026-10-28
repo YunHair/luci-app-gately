@@ -15,8 +15,26 @@ CHECKSUMS_FILE="$UPDATE_DIR/checksums.txt"
 # 版本列表走 git smart-http 的 info/refs（纯 HTTP，不走 API，不限流），
 # 下载地址按发布命名规律直接构造。
 REPO_URL="https://github.com/wangwanjie/gately"
-INFO_REFS="$REPO_URL/info/refs?service=git-upload-pack"
-DOWNLOAD_BASE="$REPO_URL/releases/download"
+
+# 可选 GitHub 加速镜像前缀（如 https://ghfast.top/）。
+# 直连 github.com 超时（curl rc=28）时在「下载与更新」页填写；留空则直连。
+GH_MIRROR=$(uci -q get gately.gately.github_mirror 2>/dev/null)
+case "$GH_MIRROR" in
+    ""|*/) ;;
+    *) GH_MIRROR="$GH_MIRROR/" ;;
+esac
+
+gh_url() {
+    local u="$1"
+    if [ -n "$GH_MIRROR" ]; then
+        printf '%s%s' "$GH_MIRROR" "$u"
+    else
+        printf '%s' "$u"
+    fi
+}
+
+INFO_REFS=$(gh_url "$REPO_URL/info/refs?service=git-upload-pack")
+DOWNLOAD_BASE=$(gh_url "$REPO_URL/releases/download")
 
 log() {
     local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $1"

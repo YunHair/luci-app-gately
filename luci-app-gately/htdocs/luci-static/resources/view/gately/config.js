@@ -6,7 +6,7 @@ var C   = gately_common;
 var KEYS = [
     'port', 'safe_url', 'internet_access', 'delay',
     'configdir', 'binpath',
-    'arch', 'release_type',
+    'arch',
     'respawn_threshold', 'respawn_timeout', 'respawn_retry',
     'auto_update', 'update_interval'
 ];
@@ -231,22 +231,15 @@ return view.extend({
                         ]),
                         { style: 'width:120px;' })
                 ], { icon: 'folder' }),
-                C.buildCard(_('Download & Update'), [
-                    C.buildFormRow('select', 'release_type', _('Release Channel'),
-                        cfg.release_type || 'stable',
-                        _('Include pre-release versions (rc) when checking'), [
-                            { v: 'stable',     l: _('Stable') },
-                            { v: 'prerelease', l: _('Include pre-release') }
-                        ]),
-                    C.buildFormRow('custom', 'goto_update', _('Core Update'),
-                        null,
-                        _('Check, download and install Gately core updates'),
-                        E('button', {
-                            type: 'button',
-                            class: 'gately-btn gately-btn-primary',
-                            click: function() { L.navigate('admin/services/gately/update'); }
-                        }, [C.icon('download', 14), E('span', {}, _('Open Update page'))]))
-                ], { icon: 'download' })
+                C.buildCard(_('Auto Update'), [
+                    C.buildFormRow('toggle', 'auto_update', _('Enable Auto Update'),
+                        cfg.auto_update || '0',
+                        _('Periodically check and install the latest version')),
+                    C.buildFormRow('number', 'update_interval', _('Check Interval (days)'),
+                        cfg.update_interval || '7',
+                        _('Range: 1 – 365 days'),
+                        { style: 'width:80px;', min: '1', max: '365' })
+                ], { icon: 'clock' })
             ]),
 
             C.buildGrid(280, [
@@ -263,16 +256,7 @@ return view.extend({
                         cfg.respawn_retry || '5',
                         descRetry,
                         { style: 'width:80px;', min: '0' })
-                ], { icon: 'refresh' }),
-                C.buildCard(_('Auto Update'), [
-                    C.buildFormRow('toggle', 'auto_update', _('Enable Auto Update'),
-                        cfg.auto_update || '0',
-                        _('Periodically check and install the latest version')),
-                    C.buildFormRow('number', 'update_interval', _('Check Interval (days)'),
-                        cfg.update_interval || '7',
-                        _('Range: 1 – 365 days'),
-                        { style: 'width:80px;', min: '1', max: '365' })
-                ], { icon: 'clock' })
+                ], { icon: 'refresh' })
             ])
         ]);
 

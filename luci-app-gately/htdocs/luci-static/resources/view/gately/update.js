@@ -27,6 +27,56 @@ function buildInfoGrid() {
         C.buildInfoTiles(items, 150, true), { icon: 'info' });
 }
 
+function buildSettingsCard() {
+    var chkSel = E('select', { id: 'set_channel', class: 'gately-select', style: 'min-width:140px;' }, [
+        E('option', { value: 'stable' },     _('Stable')),
+        E('option', { value: 'prerelease' }, _('Include pre-release'))
+    ]);
+    chkSel.value = ucig('release_type') || 'stable';
+
+    var mirrorInput = E('input', {
+        type: 'text',
+        id: 'set_mirror',
+        class: 'gately-input',
+        placeholder: _('e.g. https://ghfast.top/'),
+        style: 'flex:1;min-width:200px;',
+        value: ucig('github_mirror') || ''
+    });
+
+    var saveBtn = E('button', {
+        type: 'button',
+        class: 'gately-btn gately-btn-primary',
+        click: function() {
+            saveBtn.disabled = true;
+            uci.set('gately', 'gately', 'release_type', chkSel.value);
+            uci.set('gately', 'gately', 'github_mirror', mirrorInput.value.trim());
+            uci.save('gately');
+            uci.apply('gately').then(function() {
+                saveBtn.disabled = false;
+                C.showToast({
+                    ok: true, title: _('Saved'),
+                    msg: _('Update settings saved.'), timeout: 2000
+                });
+            });
+        }
+    }, [C.icon('check', 14), E('span', {}, _('Save'))]);
+
+    return C.buildCard(_('Update Settings'), [
+        C.buildFormRow('custom', 'set_channel_row', _('Release Channel'),
+            null,
+            _('Include pre-release versions (rc) when checking'),
+            chkSel),
+        C.buildFormRow('custom', 'set_mirror_row', _('GitHub Acceleration Mirror'),
+            null,
+            E('span', {}, [
+                _('If checking times out (rc=28, cannot reach github.com), fill a GitHub proxy prefix and save. Leave empty for direct connection.'), E('br'),
+                _('Common prefix ends with /, e.g. https://ghfast.top/')
+            ]),
+            mirrorInput),
+        E('div', { class: 'gately-banner-row', style: 'justify-content:flex-end;' }, saveBtn)
+    ], { icon: 'gear' });
+}
+
 function buildUpdateSection(t, title, iconKey, chkLabel, self) {
     return C.buildCard(title, [
         E('div', { class: 'gately-banner-row' }, [
@@ -82,6 +132,7 @@ return view.extend({
         var content = E('div', { class: 'cbi-map gately-page' }, [
             E('h2', {}, _('Gately — Download & Update')),
             buildInfoGrid(),
+            buildSettingsCard(),
             buildUpdateSection('upd', _('Gately Core Update'), 'download',
                 _('Check Upstream'), self),
             C.buildCard(_('Auto Update Log'), [
