@@ -10,13 +10,13 @@ var KEYS = [
     'respawn_threshold', 'respawn_timeout', 'respawn_retry',
     'auto_update', 'update_interval'
 ];
+var SAVE_KEYS = KEYS.concat(['admin_password']);
 
 var api = {
     settings:      C.rpc('get_settings'),
     arch:          C.rpc('get_arch'),
-    save:          C.rpc('save_settings', KEYS),
+    save:          C.rpc('save_settings', SAVE_KEYS),
     reset:         C.rpc('reset_password'),
-    setPwd:        C.rpc('set_admin_password', ['password']),
     listBackups:   C.rpc('list_backups'),
     restoreBackup: C.rpc('restore_backup', ['filename'])
 };
@@ -34,15 +34,27 @@ return view.extend({
     handleReset:     function() { location.reload(); },
 
     _save: function() {
-        return api.save.apply(null, KEYS.map(C.fval)).then(function(res) {
+        var pwdEl = document.getElementById('_f_admin_password');
+        return api.save.apply(null, SAVE_KEYS.map(C.fval)).then(function(res) {
             var ok = res && res.result === 'ok';
+            var msg = _('Settings saved successfully.');
+            if (!ok) {
+                if (res.msg === 'password_too_short')
+                    msg = _('Password must be at least 8 characters.');
+                else if (res.msg === 'not_initialized')
+                    msg = _('Gately is not initialized yet. Start it once before setting a password.');
+                else if (res.msg === 'password_set_failed')
+                    msg = _('Password set failed, please check the log.');
+                else
+                    msg = _('Save failed');
+            }
             C.showToast({
                 ok:      ok,
                 title:   ok ? _('Saved') : _('Save Failed'),
-                msg:     ok ? _('Settings saved successfully.')
-                            : _('Save failed'),
+                msg:     msg,
                 timeout: ok ? 2000 : 0
             });
+            if (ok && pwdEl) pwdEl.value = '';
         });
     },
 
@@ -152,43 +164,15 @@ return view.extend({
             }
         }, [C.icon('trash', 14), E('span', {}, _('Reset password'))]);
 
-        // 设置管理员新密码
+        // 管理员密码：总保存时一并应用；留空则保持原密码不变
         var pwdInput = E('input', {
             type: 'password',
-            id: '_f_new_password',
+            id: '_f_admin_password',
             class: 'gately-input',
-            placeholder: _('New password (min 8 chars)'),
+            autocomplete: 'new-password',
+            placeholder: _('Leave blank to keep unchanged'),
             style: 'flex:1;min-width:150px;'
         });
-        var pwdBtn = E('button', {
-            type: 'button',
-            class: 'gately-btn gately-btn-primary',
-            click: function() {
-                var pw = pwdInput.value || '';
-                if (pw.length < 8) {
-                    C.showToast({ ok: false, title: _('Too Short'),
-                        msg: _('Password must be at least 8 characters.'), timeout: 2500 });
-                    return;
-                }
-                if (!window.confirm(_('Set admin password and restart service?'))) return;
-                pwdBtn.disabled = true;
-                L.resolveDefault(api.setPwd(pw), {}).then(function(res) {
-                    pwdBtn.disabled = false;
-                    var ok = res && res.result === true;
-                    C.showToast({
-                        ok:    ok,
-                        title: ok ? _('Submitted') : _('Failed'),
-                        msg:   ok ? _('Password submitted, service restarting…')
-                                  : _('Password set failed, please check the log.'),
-                        timeout: ok ? 2500 : 0
-                    });
-                    if (ok) pwdInput.value = '';
-                });
-            }
-        }, [C.icon('gear', 14), E('span', {}, _('Apply Password'))]);
-        var pwdCtrl = E('div', {
-            style: 'display:flex;gap:8px;align-items:center;'
-        }, [pwdInput, pwdBtn]);
 
         var descThreshold = E('span', {}, '');
         var descTimeout   = E('span', {}, '');
@@ -233,10 +217,13 @@ return view.extend({
                     C.buildFormRow('toggle', 'internet_access', _('Allow Internet Access'),
                         cfg.internet_access || '0',
                         _('Off: LAN-only access. On: also reachable from the WAN.')),
-                    C.buildFormRow('custom', 'set_password', _('Admin Password'),
+                    C.buildFormRow('custom', 'admin_password', _('Admin Password'),
                         null,
-                        _('Set a new admin password (min 8 chars), applied on restart.'),
-                        pwdCtrl)
+                        E('span', {}, [
+                            _('Leave blank to keep unchanged, or enter a new password (min 8 chars).'), E('br'),
+                            _('Applied together with Save, then the service restarts.')
+                        ]),
+                        pwdInput)
                 ], { icon: 'shield' }),
                 C.buildCard(_('Basic Service'), [
                     C.buildFormRow('number', 'delay', _('Delayed Start (s)'),

@@ -37,7 +37,7 @@ uci_get() {
 }
 
 write_status() {
-    echo "$2" > "$STATUS_FILE"
+    echo "$1" > "$STATUS_FILE"
 }
 
 die() {
@@ -156,32 +156,46 @@ is_prerelease_tag() {
 }
 
 # 从 info/refs 拉取全部 tag（每行一个，已去重、去掉 ^{}）
+# 字符类需含 "-"，否则 v0.6.0-rc1 这类预发布 tag 会被截断成 v0.6.0。
 fetch_tags() {
     http_get_var "$INFO_REFS" 30 \
-        | grep -aoE 'refs/tags/v[0-9][0-9A-Za-z.]*' \
+        | grep -aoE 'refs/tags/v[0-9][0-9A-Za-z.-]*' \
         | sed 's#refs/tags/##' | sort -u
 }
 
-# 对 stdin 的 tag 行做降序排序（最新在前），用 version_lt 插入排序
+# 对 stdin 的 tag 行做降序排序（最新在前）。
+# 关键：在弱性能路由器上不能用 O(n^2) 的 shell 逐版比较（会 fork 上千进程、
+# 长时间卡在 checking）。这里用单个 awk 把每个版本转成「定长、可字典序排序」
+# 的键，再交给单个 sort -r，全程只 fork 3 个进程，与版本数量无关。
 sort_tags_desc() {
-    local sorted="" v
-    while IFS= read -r v; do
-        [ -z "$v" ] && continue
-        if [ -z "$sorted" ]; then
-            sorted="$v"
-            continue
-        fi
-        local new="" placed=0 s
-        for s in $(printf '%s' "$sorted" | tr '|' '\n'); do
-            if [ $placed -eq 0 ] && version_lt "$s" "$v"; then
-                new="${new:+$new|}$v"; placed=1
-            fi
-            new="${new:+$new|}$s"
-        done
-        [ $placed -eq 0 ] && new="${new:+$new|}$v"
-        sorted="$new"
-    done
-    printf '%s' "$sorted" | tr '|' '\n'
+    awk '{
+        v = $0; sub(/^v/, "", v);
+        p = index(v, "-");
+        if (p > 0) { core = substr(v, 1, p - 1); pre = substr(v, p + 1); }
+        else       { core = v; pre = ""; }
+
+        m = split(core, seg, ".");
+        key = "";
+        for (i = 1; i <= 4; i++) {
+            x = (i <= m) ? (seg[i] + 0) : 0;
+            key = key sprintf("%06d", x);
+        }
+
+        if (pre == "") {
+            # 正式版：末位给 9，保证排在同核心的预发布版之前
+            key = key "9";
+        } else {
+            w = pre; gsub(/[0-9].*/, "", w);
+            n = pre; sub(/^[a-zA-Z]*/, "", n); if (n == "") n = 0;
+            r = 0;
+            if (w == "dev")                         r = 0;
+            else if (w == "alpha" || w == "a")      r = 1;
+            else if (w == "beta"  || w == "b")      r = 2;
+            else if (w == "rc"    || w == "c")      r = 3;
+            key = key sprintf("%d%06d", r, n + 0);
+        }
+        print key "\t" $0;
+    }' | sort -r | cut -f2
 }
 
 # 构造某个 tag + arch 的文件名
@@ -189,12 +203,9 @@ file_for() {
     echo "gately_${1}_linux_${2}.tar.gz"
 }
 
-# 构造 releases JSON（每个版本针对当前 arch 提供一个 tar.gz）
-build_releases() {
-    local arch="$1" reltype="$2"
-    local tags_file="$RUN_DIR/tags"
-    fetch_tags | sort_tags_desc > "$tags_file"
-
+# 从已排序的 tags 文件构造 releases JSON（每个版本针对当前 arch 提供一个 tar.gz）
+build_releases_from_tags() {
+    local tags_file="$1" arch="$2" reltype="$3"
     local result="" tag fname url
     while IFS= read -r tag; do
         [ -z "$tag" ] && continue
@@ -205,7 +216,6 @@ build_releases() {
         url="${DOWNLOAD_BASE}/${tag}/${fname}"
         result="${result:+$result,}{\"tag\":\"$tag\",\"best\":\"$fname\",\"best_url\":\"$url\",\"files\":[{\"name\":\"$fname\",\"url\":\"$url\"}]}"
     done < "$tags_file"
-    rm -f "$tags_file"
     printf '[%s]\n' "$result"
 }
 
@@ -320,18 +330,21 @@ cmd_check() {
     write_status "checking"
     log "Checking upstream versions (channel=$reltype arch=$arch)"
 
-    # 先确认能拿到 tag 列表
-    local probe
-    probe=$(http_get_var "$INFO_REFS" 30)
-    { [ -z "$probe" ] || ! printf '%s' "$probe" | grep -aq 'refs/tags/v'; } \
-        && die "check_failed" "Failed to fetch Gately version list (network error)"
+    # 只拉取一次 info/refs，直接排序落盘
+    local tags_file="$RUN_DIR/tags.sorted"
+    fetch_tags | sort_tags_desc > "$tags_file"
+
+    if [ ! -s "$tags_file" ] || ! grep -aq . "$tags_file"; then
+        die "check_failed" "Failed to fetch Gately version list (network error)"
+    fi
 
     local releases_json
-    releases_json=$(build_releases "$arch" "$reltype")
+    releases_json=$(build_releases_from_tags "$tags_file" "$arch" "$reltype")
 
     local count; count=$(check_releases_count "$releases_json") \
         || die "no_releases" "No gately versions found"
     printf '%s\n' "$releases_json" > "$RELEASES_FILE"
+    rm -f "$tags_file"
     log "Found $count versions"
     write_status "ready:$count"
 }

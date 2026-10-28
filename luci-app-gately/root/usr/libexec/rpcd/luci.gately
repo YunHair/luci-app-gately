@@ -309,6 +309,21 @@ const api = {
 
     save_settings: (a) => {
         if (!ensureUciSection()) return { result: 'error', msg: 'uci_set_failed' };
+
+        // 管理员密码：不在 SETTINGS（不写入 uci）。
+        // 留空/缺省 => 保持原密码；非空 => 必须 ≥8 位且 account.json 已存在。
+        let newPass = (a.admin_password !== null && a.admin_password !== undefined)
+                      ? a.admin_password : '';
+        let applyPassword = length(newPass) > 0;
+        if (applyPassword) {
+            if (length(newPass) < 8)
+                return { result: 'error', msg: 'password_too_short' };
+            if (!exists(ucv('binpath')))
+                return { result: 'error', msg: 'no_binary' };
+            if (!exists(ucv('configdir') + '/account.json'))
+                return { result: 'error', msg: 'not_initialized' };
+        }
+
         let u = cursor(); u.load('gately');
         let needRestart = false;
         for (let k in RESTART_KEYS) {
@@ -319,6 +334,17 @@ const api = {
             if (a[k] !== null) u.set('gately', 'gately', k, a[k]);
         }
         if (!commitUci(u)) return { result: 'error', msg: 'uci_commit_failed' };
+
+        // 提交密码重置请求（异步写 account.reset，由接下来的重启处理）
+        if (applyPassword) {
+            let bin = ucv('binpath'), cfg = ucv('configdir');
+            let cmd = `${shellQuote(bin)} reset-password -c ${shellQuote(cfg)}` +
+                      ` -p ${shellQuote(newPass)} -y`;
+            if (sys(cmd) !== 0)
+                return { result: 'error', msg: 'password_set_failed' };
+            needRestart = true;
+        }
+
         if (needRestart && !scheduleServiceAction('restart'))
             return { result: 'error', msg: 'service_action_failed' };
         return { result: 'ok' };
@@ -490,6 +516,7 @@ const SIGS = {
 };
 
 for (let k in SETTINGS) SIGS.save_settings[k] = 'String';
+SIGS.save_settings.admin_password = 'String';
 
 if (ARGV[0] === 'list') {
     print(sprintf('%J\n', SIGS));

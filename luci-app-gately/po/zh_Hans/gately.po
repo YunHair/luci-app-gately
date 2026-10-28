@@ -534,3 +534,15 @@ msgstr "准备安装 Gately %s ？\n架构：%s\n安装包：%s\n\n将替换二�
 
 msgid "Submitted"
 msgstr "已提交"
+
+msgid "Leave blank to keep unchanged"
+msgstr "留空则不改变"
+
+msgid "Leave blank to keep unchanged, or enter a new password (min 8 chars)."
+msgstr "留空则不改变，或填写新密码（至少 8 位）。"
+
+msgid "Applied together with Save, then the service restarts."
+msgstr "随保存一并应用，随后服务重启。"
+
+msgid "Gately is not initialized yet. Start it once before setting a password."
+msgstr "Gately 尚未初始化。请先启动一次再设置密码。"
