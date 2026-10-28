@@ -93,22 +93,47 @@ return view.extend({
                             title: f.name,
                             click: function() {
                                 closePanel();
-                                if (!window.confirm(
-                                    _('Restore backup: %s ?').format(f.name)
-                                )) return;
-                                L.resolveDefault(
-                                    api.restoreBackup(f.name), {}
-                                ).then(function(r) {
-                                    var ok = r && r.result === 'ok';
-                                    C.showToast({
-                                        ok:      ok,
-                                        title:   ok ? _('Restored') : _('Failed'),
-                                        msg:     ok
-                                            ? _('Backup restored successfully.')
-                                            : _('Restore failed'),
-                                        timeout: ok ? 2500 : 0
+
+                                var doRestore = function() {
+                                    L.hideModal();
+                                    L.resolveDefault(
+                                        api.restoreBackup(f.name), {}
+                                    ).then(function(r) {
+                                        var ok = r && r.result === 'ok';
+                                        C.showToast({
+                                            ok:      ok,
+                                            title:   ok ? _('Restored') : _('Failed'),
+                                            msg:     ok
+                                                ? _('Backup restored successfully.')
+                                                : _('Restore failed'),
+                                            timeout: ok ? 2500 : 0
+                                        });
                                     });
-                                });
+                                };
+
+                                var cancelBtn = E('button', {
+                                    type: 'button',
+                                    class: 'gately-btn',
+                                    click: function() { L.hideModal(); }
+                                }, [E('span', {}, _('Cancel'))]);
+
+                                var okBtn = E('button', {
+                                    type: 'button',
+                                    class: 'gately-btn gately-btn-success',
+                                    click: doRestore
+                                }, [C.icon('check', 14), E('span', {}, _('Confirm Restore'))]);
+
+                                L.showModal(_('Restore Backup'), [
+                                    E('div', { class: 'gately-modal' }, [
+                                        E('div', { class: 'gately-modal-head' }, [
+                                            C.icon('folder', 20),
+                                            E('span', {}, _('Restore backup: %s ?').format(f.name))
+                                        ]),
+                                        E('p', { class: 'gately-modal-note' },
+                                            _('The configuration will be overwritten with the contents of this backup and the service will restart.')),
+                                        E('div', { class: 'gately-modal-actions' }, [cancelBtn, okBtn])
+                                    ])
+                                ]);
                             }
                         }, f.name);
                     }

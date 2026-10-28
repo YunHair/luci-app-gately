@@ -313,8 +313,7 @@ const api = {
 
         // 管理员密码：不在 SETTINGS（不写入 uci）。
         // 留空/缺省 => 保持原密码；非空 => 必须 ≥8 位且 account.json 已存在。
-        let newPass = (a.admin_password !== null && a.admin_password !== undefined)
-                      ? a.admin_password : '';
+        let newPass = a.admin_password !== null ? a.admin_password : '';
         let applyPassword = length(newPass) > 0;
         if (applyPassword) {
             if (length(newPass) < 8)
@@ -325,17 +324,25 @@ const api = {
                 return { result: 'error', msg: 'not_initialized' };
         }
 
-        let u = cursor(); u.load('gately');
+        // 通过 uci CLI 批量写入并提交（最稳定、跨版本一致）。
+        // 只写入本次实际提供的键；比对旧值判断是否需要重启。
+        let restartSet = {};
+        for (let k in RESTART_KEYS) restartSet[RESTART_KEYS[k]] = true;
+
+        let sets = [];
         let needRestart = false;
-        for (let k in RESTART_KEYS) {
-            let old = u.get('gately', 'gately', k) || SETTINGS[k] || '';
-            if (a[k] !== null && a[k] !== old) { needRestart = true; break; }
-        }
         for (let k in SETTINGS) {
-            if (a[k] !== null && a[k] !== undefined)
-                u.set('gately', 'gately', k, a[k]);
+            if (a[k] === null) continue;
+            let old = readUciOption(k, SETTINGS[k] || '');
+            if (old !== a[k] && restartSet[k]) needRestart = true;
+            push(sets, `uci -q set gately.gately.${k}=${shellQuote(a[k])}`);
         }
-        if (!commitUci(u)) return { result: 'error', msg: 'uci_commit_failed' };
+
+        if (length(sets) > 0) {
+            let cmd = join(' && ', sets) + ' && uci -q commit gately';
+            if (sys(cmd) !== 0)
+                return { result: 'error', msg: 'uci_commit_failed' };
+        }
 
         // 提交密码重置请求（异步写 account.reset，由接下来的重启处理）
         if (applyPassword) {

@@ -624,3 +624,24 @@ msgstr "未找到 Gately 二进制文件，请先安装。"
 
 msgid "Please start Gately once before changing the password."
 msgstr "修改密码前，请先启动一次 Gately。"
+
+msgid "Install Gately"
+msgstr "安装 Gately"
+
+msgid "Confirm Install"
+msgstr "确认安装"
+
+msgid "Version"
+msgstr "版本"
+
+msgid "Clear"
+msgstr "清空"
+
+msgid "Confirm Restore"
+msgstr "确认恢复"
+
+msgid "This only clears cached downloads and logs, it does not affect the current binary or configuration."
+msgstr "仅清除下载缓存与日志，不影响当前的二进制文件和配置。"
+
+msgid "The configuration will be overwritten with the contents of this backup and the service will restart."
+msgstr "配置将被该备份的内容覆盖，并重启服务。"

@@ -190,20 +190,46 @@ return view.extend({
                         type: 'button',
                         class: 'gately-btn gately-btn-danger',
                         click: function() {
-                            if (!window.confirm(_('Clear all update cache and logs?'))) return;
-                            L.resolveDefault(api.cleanUpdate(), {}).then(function(res) {
-                                var ok = res && res.result === 'ok';
-                                ['upd_log', 'auto_log'].forEach(function(id) {
-                                    var e = $(id);
-                                    if (e) { e.textContent = ''; e.classList.remove('is-open'); }
+                            var doClean = function() {
+                                L.hideModal();
+                                L.resolveDefault(api.cleanUpdate(), {}).then(function(res) {
+                                    var ok = res && res.result === 'ok';
+                                    ['upd_log', 'auto_log'].forEach(function(id) {
+                                        var e = $(id);
+                                        if (e) { e.textContent = ''; e.classList.remove('is-open'); }
+                                    });
+                                    C.showToast({
+                                        ok:      ok,
+                                        title:   ok ? _('Done') : _('Failed'),
+                                        msg:     ok ? _('Cache cleared.') : _('Clear failed.'),
+                                        timeout: ok ? 2000 : 0
+                                    });
                                 });
-                                C.showToast({
-                                    ok:      ok,
-                                    title:   ok ? _('Done') : _('Failed'),
-                                    msg:     ok ? _('Cache cleared.') : _('Clear failed.'),
-                                    timeout: ok ? 2000 : 0
-                                });
-                            });
+                            };
+
+                            var cancelBtn = E('button', {
+                                type: 'button',
+                                class: 'gately-btn',
+                                click: function() { L.hideModal(); }
+                            }, [E('span', {}, _('Cancel'))]);
+
+                            var okBtn = E('button', {
+                                type: 'button',
+                                class: 'gately-btn gately-btn-danger',
+                                click: doClean
+                            }, [C.icon('trash', 14), E('span', {}, _('Clear'))]);
+
+                            L.showModal(_('Clear Cache'), [
+                                E('div', { class: 'gately-modal' }, [
+                                    E('div', { class: 'gately-modal-head gately-modal-head--danger' }, [
+                                        C.icon('trash', 20),
+                                        E('span', {}, _('Clear all update cache and logs?'))
+                                    ]),
+                                    E('p', { class: 'gately-modal-note' },
+                                        _('This only clears cached downloads and logs, it does not affect the current binary or configuration.')),
+                                    E('div', { class: 'gately-modal-actions' }, [cancelBtn, okBtn])
+                                ])
+                            ]);
                         }
                     }, [C.icon('trash', 14), E('span', {}, _('Clear Cache'))])
                 ]),
@@ -244,35 +270,68 @@ return view.extend({
         var self = this;
         var tag  = ($(t + '_tag')  || {}).value;
         var fn   = ($(t + '_file') || {}).value;
-        var btn  = $(t + '_do');
         if (!tag || !fn) {
             C.setState(t + '_stat', _('Please select version and file first'), 'err');
             return;
         }
         var arch = ucig('arch') || 'auto';
-        var confirmMsg = [
-            _('Ready to install Gately %s ?').format(tag),
-            _('Architecture: %s').format(arch),
-            _('Package: %s').format(fn),
-            '',
-            _('The binary will be replaced and the service restarted.')
-        ].join('\n');
-        if (!window.confirm(confirmMsg)) return;
-        if (btn) btn.disabled = true;
-        C.setVis(t + '_bar_wrap', true);
-        C.setBar(t + '_bar', 0);
-        var lg = $(t + '_log');
-        if (lg) { lg.textContent = ''; lg.classList.add('is-open'); }
-        C.setState(t + '_stat', _('Starting…'), 'busy');
 
-        L.resolveDefault(api.updDo(tag, fn), {}).then(function(res) {
-            if (!res || res.result !== 'ok') {
-                if (btn) btn.disabled = false;
-                C.setState(t + '_stat', _('Failed to start install'), 'err');
-                return;
-            }
-            self._poll(t, 'do');
-        });
+        // 确认后真正开始安装
+        var proceed = function() {
+            L.hideModal();
+            var btn = $(t + '_do');
+            if (btn) btn.disabled = true;
+            C.setVis(t + '_bar_wrap', true);
+            C.setBar(t + '_bar', 0);
+            var lg = $(t + '_log');
+            if (lg) { lg.textContent = ''; lg.classList.add('is-open'); }
+            C.setState(t + '_stat', _('Starting…'), 'busy');
+
+            L.resolveDefault(api.updDo(tag, fn), {}).then(function(res) {
+                if (!res || res.result !== 'ok') {
+                    if (btn) btn.disabled = false;
+                    C.setState(t + '_stat', _('Failed to start install'), 'err');
+                    return;
+                }
+                self._poll(t, 'do');
+            });
+        };
+
+        var kvRow = function(label, val) {
+            return E('div', { class: 'gately-modal-kv-row' }, [
+                E('span', { class: 'gately-modal-kv-label' }, label),
+                E('span', { class: 'gately-modal-kv-val' }, val)
+            ]);
+        };
+
+        var cancelBtn = E('button', {
+            type: 'button',
+            class: 'gately-btn',
+            click: function() { L.hideModal(); }
+        }, [E('span', {}, _('Cancel'))]);
+
+        var okBtn = E('button', {
+            type: 'button',
+            class: 'gately-btn gately-btn-success',
+            click: proceed
+        }, [C.icon('download', 14), E('span', {}, _('Confirm Install'))]);
+
+        L.showModal(_('Install Gately'), [
+            E('div', { class: 'gately-modal' }, [
+                E('div', { class: 'gately-modal-head' }, [
+                    C.icon('download', 20),
+                    E('span', {}, _('Ready to install Gately %s ?').format(tag))
+                ]),
+                E('div', { class: 'gately-modal-kv' }, [
+                    kvRow(_('Version'), tag),
+                    kvRow(_('Architecture'), arch),
+                    kvRow(_('Package'), fn)
+                ]),
+                E('p', { class: 'gately-modal-note' },
+                    _('The binary will be replaced and the service restarted.')),
+                E('div', { class: 'gately-modal-actions' }, [cancelBtn, okBtn])
+            ])
+        ]);
     },
 
     _poll: function(t, phase) {

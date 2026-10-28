@@ -1380,3 +1380,92 @@ body.gately-variant-modal-open { overflow: hidden; }
     .gately-input { max-width: 100%; }
 }
 
+/* ===== 安装确认模态框（LuCI modal 内的 gately 风格内容） ===== */
+.modal .gately-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 320px;
+}
+
+.gately-modal-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--gately-text);
+    line-height: 1.4;
+}
+
+.gately-modal-head .gately-icon {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 34px;
+    height: 34px;
+    padding: 7px;
+    border-radius: 9px;
+    color: var(--gately-on-primary);
+    background: linear-gradient(135deg, #4d8dff 0%, #7a5cff 100%);
+    box-shadow: 0 4px 12px rgba(77, 141, 255, 0.32);
+}
+
+.gately-modal-head--danger .gately-icon {
+    background: linear-gradient(135deg, #ef5350 0%, #c62828 100%);
+    box-shadow: 0 4px 12px rgba(198, 40, 40, 0.3);
+}
+
+.gately-modal-kv {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--gately-cell-border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--gately-cell-bg);
+}
+
+.gately-modal-kv-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 13px;
+    font-size: 13px;
+}
+
+.gately-modal-kv-row + .gately-modal-kv-row {
+    border-top: 1px solid var(--gately-divider);
+}
+
+.gately-modal-kv-label {
+    flex: 0 0 76px;
+    color: var(--gately-text-3);
+}
+
+.gately-modal-kv-val {
+    flex: 1 1 auto;
+    color: var(--gately-text);
+    word-break: break-all;
+    font-weight: 500;
+}
+
+.gately-modal-note {
+    margin: 0;
+    padding: 9px 12px;
+    border-radius: 9px;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--gately-warning);
+    background: rgba(239, 108, 0, 0.09);
+}
+
+.gately-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+@media (max-width: 480px) {
+    .modal .gately-modal { min-width: 0; }
+    .gately-modal-actions .gately-btn { flex: 1 1 auto; justify-content: center; }
+}
+
