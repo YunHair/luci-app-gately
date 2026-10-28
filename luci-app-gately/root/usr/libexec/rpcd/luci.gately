@@ -17,6 +17,7 @@ const SETTINGS = {
     safe_url: '', internet_access: '0',
     respawn_threshold: '3600', respawn_timeout: '30', respawn_retry: '5',
     auto_update: '0', update_interval: '7', installed_version: '',
+    github_mirror: '', use_system_proxy: '0',
     theme: 'auto', bg: '1',
     color_primary: '', color_text: '', color_card: '', color_deco: ''
 };
@@ -331,7 +332,8 @@ const api = {
             if (a[k] !== null && a[k] !== old) { needRestart = true; break; }
         }
         for (let k in SETTINGS) {
-            if (a[k] !== null) u.set('gately', 'gately', k, a[k]);
+            if (a[k] !== null && a[k] !== undefined)
+                u.set('gately', 'gately', k, a[k]);
         }
         if (!commitUci(u)) return { result: 'error', msg: 'uci_commit_failed' };
 

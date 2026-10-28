@@ -529,8 +529,17 @@ msgstr "密码已提交，服务正在重启…"
 msgid "Password set failed, please check the log."
 msgstr "密码设置失败，请检查日志。"
 
-msgid "Ready to install Gately %s ?\nArchitecture: %s\nPackage: %s\n\nThe binary will be replaced and the service restarted."
-msgstr "准备安装 Gately %s ？\n架构：%s\n安装包：%s\n\n将替换二进制文件并重启服务。"
+msgid "Ready to install Gately %s ?"
+msgstr "准备安装 Gately %s ？"
+
+msgid "Architecture: %s"
+msgstr "架构：%s"
+
+msgid "Package: %s"
+msgstr "安装包：%s"
+
+msgid "The binary will be replaced and the service restarted."
+msgstr "将替换二进制文件并重启服务。"
 
 msgid "Submitted"
 msgstr "已提交"
@@ -588,3 +597,30 @@ msgstr "让更新流量走系统代理（如 HomeProxy）。"
 
 msgid "Turn on when direct connection or the mirror times out; turn off for direct connection."
 msgstr "直连或镜像超时时开启；直连正常时关闭。"
+
+msgid "Request failed, please try again."
+msgstr "请求失败，请重试。"
+
+msgid "Please check the input and try again."
+msgstr "请检查输入内容后重试。"
+
+msgid "Failed to write configuration, please try again."
+msgstr "写入配置失败，请重试。"
+
+msgid "Failed to save configuration, please try again."
+msgstr "保存配置失败，请重试。"
+
+msgid "Settings saved, but the service failed to restart."
+msgstr "设置已保存，但服务重启失败。"
+
+msgid "The new password must be at least 8 characters."
+msgstr "新密码至少需要 8 个字符。"
+
+msgid "Failed to set the password, please check the log."
+msgstr "密码设置失败，请查看日志。"
+
+msgid "Gately binary not found, please install it first."
+msgstr "未找到 Gately 二进制文件，请先安装。"
+
+msgid "Please start Gately once before changing the password."
+msgstr "修改密码前，请先启动一次 Gately。"

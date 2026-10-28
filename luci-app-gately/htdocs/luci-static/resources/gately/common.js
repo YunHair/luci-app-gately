@@ -2,7 +2,7 @@
 'require baseclass';
 'require rpc';
 
-var GATELY_ASSET_VERSION = '1.1.5-r1';
+var GATELY_ASSET_VERSION = '1.1.6-r1';
 var themeMode = 'auto';
 var themeMedia = window.matchMedia
     ? window.matchMedia('(prefers-color-scheme: dark)')
@@ -939,6 +939,22 @@ function taskMessage(s) {
     return TASK_MESSAGES[code] || _('Error');
 }
 
+var SAVE_MESSAGES = {
+    uci_set_failed:        _('Failed to write configuration, please try again.'),
+    uci_commit_failed:     _('Failed to save configuration, please try again.'),
+    service_action_failed: _('Settings saved, but the service failed to restart.'),
+    password_too_short:    _('The new password must be at least 8 characters.'),
+    password_set_failed:   _('Failed to set the password, please check the log.'),
+    no_binary:             _('Gately binary not found, please install it first.'),
+    not_initialized:       _('Please start Gately once before changing the password.')
+};
+
+function saveMessage(s) {
+    s = s || {};
+    var code = s.msg || s.error_code || s.code || '';
+    return SAVE_MESSAGES[code] || _('Please check the input and try again.');
+}
+
 function LogPoller(opts) {
     var timer = null;
     var active = false;
@@ -1062,6 +1078,7 @@ return baseclass.extend({
     fval: fval,
     rowVis: rowVis,
     taskMessage: taskMessage,
+    saveMessage: saveMessage,
     LogPoller: LogPoller
 });
 

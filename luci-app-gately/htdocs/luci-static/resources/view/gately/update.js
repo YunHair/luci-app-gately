@@ -10,7 +10,10 @@ var api = {
     updStat:     C.rpc('get_update_status'),
     updDo:       C.rpc('do_update',            ['tag', 'filename']),
     autoLog:     C.rpc('get_auto_update_log',  ['type']),
-    cleanUpdate: C.rpc('clean_update')
+    cleanUpdate: C.rpc('clean_update'),
+    saveSettings: C.rpc('save_settings',
+        ['release_type', 'github_mirror', 'use_system_proxy',
+         'auto_update', 'update_interval'])
 };
 
 var $    = function(id) { return document.getElementById(id); };
@@ -48,23 +51,37 @@ function buildSettingsCard() {
         class: 'gately-btn gately-btn-primary',
         click: function() {
             saveBtn.disabled = true;
-            uci.set('gately', 'gately', 'release_type', chkSel.value);
-            uci.set('gately', 'gately', 'github_mirror', mirrorInput.value.trim());
-            var autoEl = document.getElementById('_f_auto_update');
-            uci.set('gately', 'gately', 'auto_update',
-                (autoEl && autoEl.checked) ? '1' : '0');
-            var ivEl = document.getElementById('_f_update_interval');
-            uci.set('gately', 'gately', 'update_interval',
-                (ivEl && ivEl.value) ? ivEl.value : '7');
+
+            var autoEl  = document.getElementById('_f_auto_update');
+            var ivEl    = document.getElementById('_f_update_interval');
             var proxyEl = document.getElementById('_f_use_system_proxy');
-            uci.set('gately', 'gately', 'use_system_proxy',
-                (proxyEl && proxyEl.checked) ? '1' : '0');
-            uci.save('gately');
-            uci.apply('gately').then(function() {
+
+            var relType = chkSel.value;
+            var mirror  = mirrorInput.value.trim();
+            var proxy   = (proxyEl && proxyEl.checked) ? '1' : '0';
+            var auto    = (autoEl && autoEl.checked) ? '1' : '0';
+            var interval= (ivEl && ivEl.value) ? ivEl.value : '7';
+
+            L.resolveDefault(api.saveSettings(
+                relType, mirror, proxy, auto, interval), {}
+            ).then(function(res) {
+                saveBtn.disabled = false;
+                var ok = res && res.result === 'ok';
+                C.showToast({
+                    ok: ok,
+                    title: ok ? _('Saved') : _('Save failed'),
+                    msg: ok
+                        ? _('Update settings saved.')
+                        : C.saveMessage(res),
+                    timeout: ok ? 2000 : 0
+                });
+            }).catch(function() {
                 saveBtn.disabled = false;
                 C.showToast({
-                    ok: true, title: _('Saved'),
-                    msg: _('Update settings saved.'), timeout: 2000
+                    ok: false,
+                    title: _('Save failed'),
+                    msg: _('Request failed, please try again.'),
+                    timeout: 0
                 });
             });
         }
@@ -233,9 +250,14 @@ return view.extend({
             return;
         }
         var arch = ucig('arch') || 'auto';
-        if (!window.confirm(
-            _('Ready to install Gately %s ?\nArchitecture: %s\nPackage: %s\n\nThe binary will be replaced and the service restarted.')
-                .format(tag, arch, fn))) return;
+        var confirmMsg = [
+            _('Ready to install Gately %s ?').format(tag),
+            _('Architecture: %s').format(arch),
+            _('Package: %s').format(fn),
+            '',
+            _('The binary will be replaced and the service restarted.')
+        ].join('\n');
+        if (!window.confirm(confirmMsg)) return;
         if (btn) btn.disabled = true;
         C.setVis(t + '_bar_wrap', true);
         C.setBar(t + '_bar', 0);
