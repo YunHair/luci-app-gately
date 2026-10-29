@@ -1,6 +1,6 @@
 # luci-app-gately — Gately 管理插件 for OpenWrt
 
-`luci-app-gately` 是一个为 OpenWrt 定制的 LuCI 界面插件，用于管理开源网络网关工具 [Gately](https://github.com/wangwanjie/gately)。本插件由 `luci-app-lucky` 适配而来，在固件更新、进程守护、目录定制与架构适配方面保持了同等能力，更新源已切换为 Gately 官方发布地址。
+`luci-app-gately` 是一个为 OpenWrt 定制的 LuCI 界面插件，用于管理开源网络网关工具 [Gately](https://github.com/wangwanjie/gately)。本插件由 `whzhni1/luci-app-lucky` 修改而来，在固件更新、进程守护、目录定制与架构适配方面保持了同等能力，更新源已切换为 Gately 官方发布地址。
 
 Gately 以单二进制方式运行，启动命令为：
 
@@ -109,25 +109,3 @@ chmod 755 /etc/init.d/gately /usr/libexec/gately-*.sh /usr/libexec/rpcd/luci.gat
 
 ---
 
-## 📝 与 luci-app-lucky 的差异（适配说明）
-
-由于 Gately 与 Lucky 的发布方式、命令行能力不同，本插件做了如下适配：
-
-| 项目 | luci-app-lucky | luci-app-gately |
-| --- | --- | --- |
-| 管理对象 | Lucky（gdy666/lucky） | Gately（wangwanjie/gately） |
-| 二进制名 / 路径 | lucky / `/usr/bin/lucky` | gately `/usr/bin/gately` |
-| 配置目录 | `/etc/config/lucky.daji` | `/etc/gately` |
-| 启动参数 | `-cd <dir>` | `-c <dir>` |
-| 默认端口 | 16601 | 16680 |
-| 版本查询 | `-info`（JSON） | `-version`（JSON） |
-| 重置密码 | 重置为 666 | 重置为默认密码 gately.cn |
-| 架构命名 | x86_64 / arm64 / armv7 / mips_hardfloat… | amd64 / arm64 / arm / mips / mipsle / riscv64 |
-| 校验方式 | release 内嵌 sha256 | `checksums.txt` |
-
-**已裁剪的功能**（Gately 不提供对应能力或发布产物）：
-
-- 官方备用镜像（`release.66666.host`）：Gately 仅通过 GitHub 发布。
-- 多版本变体（标准版 / 万吉版 / 小聚 / xiaoman / Docker 等）：Gately 仅单一发布。
-- 安全入口、允许外网访问的命令行写入：Gately 不提供对应命令行参数，这些请在 Gately 后台设置。
-- LuCI 插件自身的在线更新区块：Gately 发布地址中不包含独立的 `luci-app-gately` 包，故该区块移除；核心更新完整保留。如后续建立独立发布地址，可再补回。
