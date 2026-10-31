@@ -20,9 +20,9 @@ jobs:
 
       - name: Compile lmo
         run: |
-          ./po2lmo/src/po2lmo luci-app-gately/po/zh_Hans/gately.po gately.zh-cn.lmo
+          ./po2lmo/src/po2lmo luci-app-gately-plus/po/zh_Hans/gately-plus.po gately-plus.zh-cn.lmo
 
       - uses: actions/upload-artifact@v4
         with:
-          name: gately-lmo
-          path: gately.zh-cn.lmo
+          name: gately-plus-lmo
+          path: gately-plus.zh-cn.lmo

@@ -1,4 +1,4 @@
-name: Build luci-app-gately
+name: Build luci-app-gately-plus
 
 on:
   workflow_dispatch:
@@ -29,7 +29,7 @@ jobs:
         env:
           ARCH: x86_64-${{ matrix.sdk }}
           FEEDNAME: packages_ci
-          PACKAGES: luci-app-gately
+          PACKAGES: luci-app-gately-plus
           NO_REFRESH_CHECK: true
       - uses: actions/upload-artifact@v4
         with:
@@ -54,7 +54,7 @@ jobs:
       - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          name: luci-app-gately ${{ github.ref_name }}
+          name: luci-app-gately-plus ${{ github.ref_name }}
           files: ipks/*
           generate_release_notes: true
           make_latest: true

@@ -1,6 +1,6 @@
-# luci-app-gately — Gately 管理插件 for OpenWrt
+# luci-app-gately-plus — Gately 管理插件（增强版）for OpenWrt
 
-`luci-app-gately` 是一个为 OpenWrt 定制的 LuCI 界面插件，用于管理开源网络网关工具 [Gately](https://github.com/wangwanjie/gately)。本插件由 `whzhni1/luci-app-lucky` 修改而来，在固件更新、进程守护、目录定制与架构适配方面保持了同等能力，更新源已切换为 Gately 官方发布地址。
+`luci-app-gately-plus` 是一个为 OpenWrt 定制的 LuCI 界面插件，用于管理开源网络网关工具 [Gately](https://github.com/wangwanjie/gately)。本插件由 `whzhni1/luci-app-lucky` 修改而来，在固件更新、进程守护、目录定制与架构适配方面保持了同等能力，更新源已切换为 Gately 官方发布地址。
 
 Gately 以单二进制方式运行，启动命令为：
 
@@ -48,47 +48,53 @@ Gately 以单二进制方式运行，启动命令为：
 - 依赖：`luci-base`、`curl`。
 - 不兼容基于 OpenWrt 21.02 的系统。
 
+> **为什么叫 `-plus`**：Gately 官方也提供了同名的 `luci-app-gately` 插件（在 `deploy/openwrt` 下，功能较精简：运行状态、启停、端口设置）。为与其区分并允许**两者共存**，本插件自 2.0.0 起更名为 `luci-app-gately-plus`，包名、rpc 对象、菜单节点、配置文件、服务名均已独立，不再与官方包互相覆盖。
+>
+> - 配置文件：`/etc/config/gately_plus`
+> - 服务名：`/etc/init.d/gately-plus`
+> - 菜单入口：**服务 → Gately Plus**
+
 ---
 
 ## 📦 安装
 
 ### 方式一：使用 OpenWrt SDK / 源码编译
 
-本仓库为 feed 布局，真正的包位于内层 `luci-app-gately/` 目录。将该目录放入 OpenWrt 源码树的 `package/` 目录：
+本仓库为 feed 布局，真正的包位于内层 `luci-app-gately-plus/` 目录。将该目录放入 OpenWrt 源码树的 `package/` 目录：
 
 ```bash
 # 假设当前位于仓库根目录
-cp -a luci-app-gately /path/to/openwrt/package/
+cp -a luci-app-gately-plus /path/to/openwrt/package/
 cd /path/to/openwrt
 ./scripts/feeds update luci
 ./scripts/feeds install luci
-make package/luci-app-gately/compile V=s
+make package/luci-app-gately-plus/compile V=s
 ```
 
 生成的安装包位于 `bin/packages/.../packages_ci/`，使用 `opkg install` 或 `apk add --allow-untrusted` 安装。
 
-也可直接使用 GitHub Actions（`Build luci-app-gately` 工作流）一键构建。
+也可直接使用 GitHub Actions（`Build luci-app-gately-plus` 工作流）一键构建。
 
 ### 方式二：手动部署（不打包）
 
-将内层 `luci-app-gately/root/` 目录结构复制到目标系统：
+将内层 `luci-app-gately-plus/root/` 目录结构复制到目标系统：
 
 ```bash
 # 假设当前位于仓库根目录
-cp -a luci-app-gately/root/. /
-chmod 755 /etc/init.d/gately /usr/libexec/gately-*.sh /usr/libexec/rpcd/luci.gately
+cp -a luci-app-gately-plus/root/. /
+chmod 755 /etc/init.d/gately-plus /usr/libexec/gately-plus-*.sh /usr/libexec/rpcd/luci.gately-plus
 /etc/init.d/rpcd reload
 # 自行把 gately 二进制放到 /usr/bin/gately 后：
-/etc/init.d/gately enable && /etc/init.d/gately start
+/etc/init.d/gately-plus enable && /etc/init.d/gately-plus start
 ```
 
-安装后可在 OpenWrt 管理页面的 **服务 → Gately** 菜单中找到配置入口。
+安装后可在 OpenWrt 管理页面的 **服务 → Gately Plus** 菜单中找到配置入口。
 
 ---
 
 ## ⚙️ 配置说明
 
-通过 **服务 → Gately** 进入：
+通过 **服务 → Gately Plus** 进入：
 
 - **基本设置**
   - Web UI 端口（默认 16680，仅用于页面快捷跳转；实际端口请在 Gately 后台设置中修改）
