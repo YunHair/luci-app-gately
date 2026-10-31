@@ -92,6 +92,33 @@ chmod 755 /etc/init.d/gately-plus /usr/libexec/gately-plus-*.sh /usr/libexec/rpc
 
 ---
 
+## 🗑 卸载
+
+```sh
+opkg remove luci-app-gately-plus      # 或 apk del luci-app-gately-plus
+```
+
+卸载只做三件事：停服务、取消开机自启、清掉自动更新的 crontab 条目。
+
+**以下内容一律保留，不会被删：**
+
+| 路径 | 说明 |
+|---|---|
+| `/usr/bin/gately`（或你自定义的 `binpath`） | 已下载的 Gately 二进制 |
+| `/etc/gately`（或你自定义的 `configdir`） | 账号、配置、数据 |
+| `/etc/config/gately_plus` | 插件的 uci 配置（conffiles） |
+
+卸载结束时安装日志会把这些路径打印出来。确认不再需要时自己删即可：
+
+```sh
+rm -f /usr/bin/gately
+rm -rf /etc/gately /etc/config/gately_plus
+```
+
+重新安装后服务会直接沿用原有的二进制与数据，无需重新初始化。
+
+---
+
 ## ⚙️ 配置说明
 
 通过 **服务 → Gately Plus** 进入：
